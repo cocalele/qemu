@@ -383,6 +383,7 @@ trace_backends="log"
 trace_file="trace"
 spice="$default_feature"
 rbd="auto"
+pfbd="auto"
 smartcard="$default_feature"
 u2f="auto"
 libusb="$default_feature"
@@ -1288,6 +1289,10 @@ for opt do
   ;;
   --enable-rbd) rbd="enabled"
   ;;
+  --disable-pfbd) pfbd="disabled"
+  ;;
+  --enable-pfbd) pfbd="enabled"
+  ;;
   --disable-xfsctl) xfs="no"
   ;;
   --enable-xfsctl) xfs="yes"
@@ -1847,6 +1852,7 @@ disabled with --disable-FEATURE, default is enabled if available
   vhost-vdpa      vhost-vdpa kernel backend support
   spice           spice
   rbd             rados block device (rbd)
+  pfbd            PureFlash block device (pfbd)
   libiscsi        iscsi support
   libnfs          nfs support
   smartcard       smartcard support (libcacard)
@@ -6526,7 +6532,7 @@ NINJA=$ninja $meson setup \
         -Dcapstone=$capstone -Dslirp=$slirp -Dfdt=$fdt -Dbrlapi=$brlapi \
         -Dcurl=$curl -Dglusterfs=$glusterfs -Dbzip2=$bzip2 -Dlibiscsi=$libiscsi \
         -Dlibnfs=$libnfs -Diconv=$iconv -Dcurses=$curses -Dlibudev=$libudev\
-        -Drbd=$rbd -Dlzo=$lzo -Dsnappy=$snappy -Dlzfse=$lzfse \
+        -Drbd=$rbd -Dpfbd=$pfbd -Dlzo=$lzo -Dsnappy=$snappy -Dlzfse=$lzfse \
         -Dzstd=$zstd -Dseccomp=$seccomp -Dvirtfs=$virtfs -Dcap_ng=$cap_ng \
         -Dattr=$attr -Ddefault_devices=$default_devices \
         -Ddocs=$docs -Dsphinx_build=$sphinx_build -Dinstall_blobs=$blobs \

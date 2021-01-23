@@ -684,6 +684,15 @@ if not get_option('rbd').auto() or have_block
   endif
 endif
 
+pfbd = not_found
+if not get_option('pfbd').auto() or have_block
+  libpfbd = cc.find_library('libs5common', has_headers: ['pfbd/pf_client_api.h'],
+                           required: get_option('pfbd'),
+                           static: true)
+  
+  pfbd = declare_dependency(dependencies: [libpfbd], link_args: ['-lpthread', '-luuid', '-lzookeeper', '-lhashtable', '-lcurl', '-lstdc++'])
+endif
+
 glusterfs = not_found
 glusterfs_ftruncate_has_stat = false
 glusterfs_iocb_has_stat = false
@@ -1067,6 +1076,7 @@ config_host_data.set('CONFIG_LIBCAP_NG', libcap_ng.found())
 config_host_data.set('CONFIG_LIBISCSI', libiscsi.found())
 config_host_data.set('CONFIG_LIBNFS', libnfs.found())
 config_host_data.set('CONFIG_RBD', rbd.found())
+config_host_data.set('CONFIG_PFBD', pfbd.found())
 config_host_data.set('CONFIG_SDL', sdl.found())
 config_host_data.set('CONFIG_SDL_IMAGE', sdl_image.found())
 config_host_data.set('CONFIG_SECCOMP', seccomp.found())
@@ -2422,6 +2432,7 @@ endif
 # TODO: add back protocol and server version
 summary_info += {'spice support':     config_host.has_key('CONFIG_SPICE')}
 summary_info += {'rbd support':       rbd.found()}
+summary_info += {'pfbd support':       pfbd.found()}
 summary_info += {'xfsctl support':    config_host.has_key('CONFIG_XFS')}
 summary_info += {'smartcard support': config_host.has_key('CONFIG_SMARTCARD')}
 summary_info += {'U2F support':       u2f.found()}

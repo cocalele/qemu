@@ -77,6 +77,7 @@ foreach m : [
   [libnfs, 'nfs', libnfs, 'nfs.c'],
   [libssh, 'ssh', libssh, 'ssh.c'],
   [rbd, 'rbd', rbd, 'rbd.c'],
+  [pfbd, 'pfbd', pfbd, 'pfbd.c'],
 ]
   if m[0].found()
     if enable_modules
