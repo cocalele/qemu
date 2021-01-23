@@ -194,6 +194,8 @@ option('pvrdma', type : 'feature', value : 'auto',
        description: 'Enable PVRDMA support')
 option('gtk', type : 'feature', value : 'auto',
        description: 'GTK+ user interface')
+option('pfbd', type : 'feature', value : 'auto',
+       description: 'PureFlash block device driver')
 option('sdl', type : 'feature', value : 'auto',
        description: 'SDL user interface')
 option('sdl_image', type : 'feature', value : 'auto',

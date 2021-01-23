@@ -3570,6 +3570,12 @@ L: qemu-block@nongnu.org
 S: Supported
 F: block/rbd.c
 
+PFBD
+M: Liu Lele <liu_lele@126.com>
+L: qemu-block@nongnu.org
+S: Supported
+F: block/pfbd.c
+
 VHDX
 M: Jeff Cody <codyprime@gmail.com>
 L: qemu-block@nongnu.org

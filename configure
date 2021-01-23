@@ -809,6 +809,10 @@ for opt do
   ;;
   --enable-download) download="enabled"; git_submodules_action=update;
   ;;
+  --disable-pfbd) pfbd="disabled"
+  ;;
+  --enable-pfbd) pfbd="enabled"
+  ;;  
   --enable-plugins) if test "$mingw32" = "yes"; then
                         error_exit "TCG plugins not currently supported on Windows platforms"
                     else

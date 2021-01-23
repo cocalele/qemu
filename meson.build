@@ -1303,6 +1303,15 @@ if not get_option('rbd').auto() or have_block
   endif
 endif
 
+pfbd = not_found
+if not get_option('pfbd').auto() or have_block
+  libpfbd = cc.find_library('libs5common', has_headers: ['pfbd/pf_client_api.h'],
+                           required: get_option('pfbd'),
+                           static: true)
+  
+  pfbd = declare_dependency(dependencies: [libpfbd], link_args: ['-lpthread', '-luuid', '-lzookeeper', '-lhashtable', '-lcurl', '-lstdc++'])
+endif
+
 glusterfs = not_found
 glusterfs_ftruncate_has_stat = false
 glusterfs_iocb_has_stat = false
@@ -2121,6 +2130,7 @@ config_host_data.set('CONFIG_OPENGL', opengl.found())
 config_host_data.set('CONFIG_RBD', rbd.found())
 config_host_data.set('CONFIG_RDMA', rdma.found())
 config_host_data.set('CONFIG_SAFESTACK', get_option('safe_stack'))
+config_host_data.set('CONFIG_PFBD', pfbd.found())
 config_host_data.set('CONFIG_SDL', sdl.found())
 config_host_data.set('CONFIG_SDL_IMAGE', sdl_image.found())
 config_host_data.set('CONFIG_SECCOMP', seccomp.found())
