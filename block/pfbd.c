@@ -393,7 +393,7 @@ static BlockDriver bdrv_pfbd = {
 //		.bdrv_co_invalidate_cache = qemu_pfbd_co_invalidate_cache,
 //#endif
 
-//		.strong_runtime_opts    = qemu_pfbd_strong_runtime_opts,
+		.strong_runtime_opts    = qemu_pfbd_strong_runtime_opts,
 };
 
 static void bdrv_pfbd_init(void)
