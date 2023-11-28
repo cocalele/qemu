@@ -110,7 +110,7 @@ foreach m : [
   [libnfs, 'nfs', files('nfs.c')],
   [libssh, 'ssh', files('ssh.c')],
   [rbd, 'rbd', files('rbd.c')],
-  [pfbd, 'pfbd', pfbd, 'pfbd.c'],
+  [pfbd, 'pfbd', files('pfbd.c')],
 
 ]
   if m[0].found()
