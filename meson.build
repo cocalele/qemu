@@ -1309,7 +1309,7 @@ if not get_option('pfbd').auto() or have_block
                            required: get_option('pfbd'),
                            static: true)
   
-  pfbd = declare_dependency(dependencies: [libpfbd], link_args: ['-lpthread', '-luuid', '-lzookeeper_mt', '-lhashtable', '-lcurl', '-lstdc++', '-lrdmacm', '-libverbs'])
+  pfbd = declare_dependency(dependencies: [libpfbd], link_args: ['-ls5common', '-lpthread', '-luuid', '-lzookeeper_mt', '-lhashtable', '-lcurl', '-lstdc++', '-lrdmacm', '-libverbs', '-lspdk_nvme', '-lspdk_util', '-lspdk_log', '-lspdk_sock', '-lspdk_trace', '-lspdk_json', '-lspdk_jsonrpc', '-lspdk_rpc', '-lspdk_env_dpdk','-lrte_eal', '-lrte_mempool', '-lrte_ring', '-lrte_telemetry', '-lrte_kvargs', '-lrte_pci', '-lrte_bus_pci', '-lrte_mempool_ring'])
 endif
 
 glusterfs = not_found
