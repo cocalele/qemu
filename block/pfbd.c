@@ -49,137 +49,7 @@ typedef struct PfbdCoData {
 } PfbdCoData;
 
 
-#if 0
-typedef struct PfbdCompleteQueue
-{
-    int tail;			///< tail pointer
-    int head;			///< head pointer
-    int queue_depth;	///< queue depth, max number of element can be put to this queue plus 1
-    struct PfbdCoData** data;		///< memory used by this queue, it's size of queue_depth * ele_size
-    pthread_spinlock_t lock;
-    //struct CoMutex mutex;
-    //char name[44];
-}PfbdCompleteQueue;
-#define QUEUE_SPACE(size, head, tail) 	 ( (head) <=  (tail) ?   (size - tail + head - 1) : (head - tail - 1) )
-#define QUEUE_COUNT(size, head, tail) ( (head) <= (tail) ? (tail-head) : (size + tail - head) )
 
-/**
- * Initialize a queue.
- *
- * The queue depth conforms to Depth = 2 ^ queue_depth_order - 1.
- * For example, with queue_depth_order=10, this queue can contains 1023 elements.
- * because this queue is implemented with an array which size is of 2 ^ queue_depth_order
- * and the queue can contain array_size - 1 elements.
- *
- * @param[in,out]	queue				queue to initialize
- * @param[in]		queue_depth_order	queue depth order value
- * @return 0 on success, -ENOMEM on fail
- */
-static int cq_init(PfbdCompleteQueue* pthis, int _queue_depth)
-{
-    pthis->head = pthis->tail = 0;
-    pthis->queue_depth = _queue_depth + 1;
-    pthis->data = (PfbdCoData**)calloc((size_t)_queue_depth, sizeof(PfbdCoData*));
-    if (pthis->data == NULL)
-        return -ENOMEM;
-    //qemu_co_mutex_init(&pthis->mutex);
-    pthread_spin_init(&pthis->lock, 0);
-    return 0;
-}
-
-/**
- * Destroy an unused queue.
- */
-static void cq_destroy(PfbdCompleteQueue* pthis )
-{
-    pthis->queue_depth = pthis->tail = pthis->head = 0;
-    free(pthis->data);
-    pthis->data = NULL;
-    //pthread_spin_destroy(&lock);
-}
-/**
- * Returns whether the queue is empty(i.e. whether its size is 0).
- *
- * @param[in]	queue	queue depth
- *
- * @retval		1		queue is empty
- * @retval		0		queue is not empty
- */
-static inline bool cq_is_empty(PfbdCompleteQueue* pthis ) { return pthis->tail == pthis->head; }
-/**
- * Returns whether the queue container is full(i.e. whether its remaining space is 0).
- *
- * @param[in]	queue	queue depth
- *
- * @retval		1		queue is full
- * @retval		0		queue is not full
- */
-static inline bool cq_is_full(PfbdCompleteQueue* pthis ) { return QUEUE_SPACE(pthis->queue_depth, pthis->head, pthis->tail) == 0; }
-
-/**
- * Get the available space in queue.
- *
- * @param[in]	queue	queue to compute
- *
- * @return available space in queue.
- */
-static inline int cq_space(PfbdCompleteQueue* pthis ) { return QUEUE_SPACE(pthis->queue_depth, pthis->head, pthis->tail); }
-
-/**
- * get the valid entries count in queue
- *
- * @param[in]	queue	queue to compute
- *
- * @return valid element number in queue.
- */
-static inline int cq_count(PfbdCompleteQueue* pthis ) { return QUEUE_COUNT(pthis->queue_depth, pthis->head, pthis->tail); }
-
-static inline int cq_enqueue_nolock(PfbdCompleteQueue* pthis, /*in*/PfbdCoData* element)
-{ //this function should be called from PfClient event thread only, and only one thread access this
-
-    pthis->data[pthis->tail] = element;
-    smp_wmb();
-    pthis->tail = (pthis->tail + 1) % pthis->queue_depth;
-    return 0;
-}
-/**
- * Dequeue an element from the head of the queue.
- *
- * User cannot long term retain element dequeued, and should not free it also.
- *
- * @param[in]	queue	the queue to operate on
- * @return a T
- * @throws bad_logic exception if queue is empty.
- *
- * @mark, dequeue must return a value of T, not T* or T&. T* or T& is a pointer to data[i],
- * after dequeue return, data[i] may has changed its value by other call to enqueue before
- * caller consume dequeue's return value
- */
-static inline PfbdCoData* cq_dequeue_nolock(PfbdCompleteQueue* pthis)
-{ //this function should be called from qemu coroutine only
-    smp_rmb();
-    PfbdCoData* t = pthis->data[pthis->head];
-    pthis->head = (pthis->head + 1) % pthis->queue_depth;
-    return t;
-}
-//inline T dequeue(PfbdCompleteQueue* pthis, )
-//{
-//    AutoSpinLock l(&lock);
-//    return dequeue_nolock();
-//}
-
-
-#endif
-
-
-//typedef struct {
-//    int plugged;
-//    unsigned int in_queue;
-//    unsigned int in_flight;
-//    bool blocked;
-//    QSIMPLEQ_HEAD(, PfbdCoData) pending;
-//} PfbdIoQueue; // copy from LaioQueue;
-//
 
 typedef struct BDRVPfbdState {
     char volume_name[128];
@@ -329,66 +199,6 @@ static void qemu_pfbd_refresh_limits(BlockDriverState* bs, Error** errp)
     bs->bl.max_transfer = PF_MAX_IO_SIZE;
 }
 
-#if 0
-static void process_pfbd_io_completions(BDRVPfbdState* s)
-{
-    PfbdCoData* iocb;
-    //qemu_co_mutex_lock(&s->io_cq.mutex);
-    //pthread_spin_lock(&s->io_cq.lock);
-    while (!cq_is_empty(&s->io_cq)) {
-        iocb = cq_dequeue_nolock(&s->io_cq);
-#if 1
-        if (!qemu_coroutine_entered(iocb->co)) {
-            if(iocb->co){
-                aio_co_wake(iocb->co);
-                
-            }
-        }
-#else
-                
-            if (!iocb->co) {
-                return;
-            }
-            replay_bh_schedule_oneshot_event(iocb->ctx, pfbd_rw_cb_bh, iocb);
-#endif
-    }
-    //qemu_co_mutex_unlock(&s->io_cq.mutex); //can't used here, not in coroutine
-    //pthread_spin_unlock(&s->io_cq.lock);
-}
-
-static void pfbd_process_completion_bh(void* opaque)
-{
-    BDRVPfbdState* s = opaque;
-    
-    qemu_bh_schedule(s->completion_bh);
-    process_pfbd_io_completions(s);
-    qemu_bh_cancel(s->completion_bh);
-
-}
-
-static void qemu_pfbd_completion_cb(EventNotifier* e)
-{
-    BDRVPfbdState* s = container_of(e, BDRVPfbdState, e);
-
-    if (event_notifier_test_and_clear(&s->e)) {
-        process_pfbd_io_completions(s);
-    }
-}
-
-static bool qemu_pfbd_poll_cb(void* opaque)
-{
-    EventNotifier* e = opaque;
-    BDRVPfbdState* s = container_of(e, BDRVPfbdState, e);
-
-
-    if (cq_is_empty(&s->io_cq)) {
-        return false;
-    }
-
-    process_pfbd_io_completions(s);
-    return true;
-}
-#endif
 
 static int qemu_pfbd_open(BlockDriverState *bs, QDict *options, int flags,
                          Error **errp)
@@ -434,25 +244,6 @@ static int qemu_pfbd_open(BlockDriverState *bs, QDict *options, int flags,
     bs->bl.request_alignment = 4096;
     bs->bl.min_mem_alignment = 4096;
 
-#if 0
-    cq_init(&s->io_cq, 2048);
-    s->aio_context = bdrv_get_aio_context(bs);
-
-
-    int rc = event_notifier_init(&s->e, false);
-    if (rc < 0) {
-        error_setg_errno(errp, -rc, "failed to to initialize event notifier");
-        goto out;
-    }
-
-    s->completion_bh = aio_bh_new(s->aio_context, pfbd_process_completion_bh, s);
-    aio_set_event_notifier(s->aio_context, &s->e, false,
-        qemu_pfbd_completion_cb,
-        qemu_pfbd_poll_cb);
-
-#endif
-
-
 	r = 0;
 	goto out;
 
@@ -464,15 +255,11 @@ out:
 }
 
 
-/* Since RBD is currently always opened R/W via the API,
- * we just need to check if we are using a snapshot or not, in
- * order to determine if we will allow it to be R/W */
+
 static int qemu_pfbd_reopen_prepare(BDRVReopenState *state,
                                    BlockReopenQueue *queue, Error **errp)
 {
-	//BDRVPfbdState *s = state->bs->opaque;
 	int ret = 0;
-
 	return ret;
 }
 
@@ -481,17 +268,7 @@ static void qemu_pfbd_close(BlockDriverState *bs)
 	BDRVPfbdState *s = bs->opaque;
 
 	pf_close_volume(s->vol);
-#if 0
-    cq_destroy(&s->io_cq);
-    g_free(s->completion_bh);//allocaed by g_new
-#endif
 }
-//static uint64_t now_time_usec(void)
-//{
-//    struct timespec tp;
-//    clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
-//    return tp.tv_sec * 1000000LL + tp.tv_nsec / 1000;
-//}
 
 
 //static const AIOCBInfo pfbd_aiocb_info = {
@@ -558,30 +335,6 @@ static void pfbd_rw_cb(void* opaque, int ret)
 
     aio_bh_schedule_oneshot(bdrv_get_aio_context(data->bds),
         pfbd_rw_cb_bh, data);
-
-#if 0
-    BDRVPfbdState* s = data->bs;
-    while (cq_is_full(&s->io_cq)) {
-        warn_report("Pfbd complete queue full");
-        usleep(100);
-    }
-    cq_enqueue_nolock(&s->io_cq, data);
-    static int64_t v=1;
-
-    
-    int rc = write(event_notifier_get_fd(&s->e), &v, sizeof(v));
-    if(rc != sizeof(v)){
-        warn_report("Failed to write event fd, rc:%d", errno);
-    }
-#endif
-}
-
-static void pfbd_read_cb(void* opaque, int ret){
-    //PfbdCoData* data = opaque;
-    //uint64_t now_t = now_time_usec();
-    //if(now_t < data->submit_time + 500)
-    //    usleep(500);
-    pfbd_rw_cb(opaque, ret);
 }
 
 static coroutine_fn int pfbd_co_preadv(BlockDriverState* bs,
@@ -601,7 +354,7 @@ static coroutine_fn int pfbd_co_preadv(BlockDriverState* bs,
         //.submit_time = now_time_usec()
     };
     
-    r = pf_iov_submit(s->vol, qiov->iov, qiov->niov, bytes, offset, pfbd_read_cb, &data, 0);
+    r = pf_iov_submit(s->vol, qiov->iov, qiov->niov, bytes, offset, pfbd_rw_cb, &data, 0);
     if(r){
         error_report("submit IO error, rc:%d", r);
         return r;
@@ -744,20 +497,7 @@ static const char *const qemu_pfbd_strong_runtime_opts[] = {
 
 		NULL
 };
-//static void pfbd_aio_plug(BlockDriverState* bs)
-//{
-//    BDRVPfbdState* s = bs->opaque;
-//    assert(!s->plugged);
-//    s->plugged = true;
-//}
-//
-//static void pfbd_aio_unplug(BlockDriverState* bs)
-//{
-//    BDRVPfbdState* s = bs->opaque;
-//    assert(s->plugged);
-//    s->plugged = false;
-//    
-//}
+
 static BlockDriver bdrv_pfbd = {
 		.format_name            = "pfbd",
 		.instance_size          = sizeof(BDRVPfbdState),
@@ -785,7 +525,6 @@ static BlockDriver bdrv_pfbd = {
         //.bdrv_io_unplug = pfbd_aio_unplug,
 
 #endif
-        .bdrv_refresh_limits    = qemu_pfbd_refresh_limits,
 
 //#ifdef LIBRBD_SUPPORTS_AIO_FLUSH
 //		.bdrv_aio_flush         = qemu_pfbd_aio_flush,
